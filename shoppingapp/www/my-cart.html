@@ -1,0 +1,53 @@
+{% extends "templates/web.html" %} {% block page_content %}
+<div class="container my-5">
+	<h2 class="mb-4">🛒 My Cart</h2>
+
+	{% if cart and cart.cart_items %}
+	<table class="table table-bordered">
+		<thead class="table-light">
+			<tr>
+				<th>Product</th>
+				<th style="width: 120px">Qty</th>
+				<th style="width: 120px">Rate</th>
+				<th style="width: 120px">Amount</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in cart.cart_items %}
+			<tr>
+				<td>{{ item.product_name }}</td>
+				<td>{{ item.quantity }}</td>
+				<td>₹ {{ item.rate }}</td>
+				<td>₹ {{ item.amount }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<div class="d-flex justify-content-end">
+		<h4>Total: ₹ {{ cart.total_amount }}</h4>
+	</div>
+
+	<div class="text-end mt-3">
+		<button class="btn btn-success" onclick="place_order()">Place Order</button>
+	</div>
+
+	{% else %}
+	<div class="alert alert-info">Your cart is empty.</div>
+	{% endif %}
+</div>
+
+<script>
+	function place_order() {
+		frappe.call({
+			method: "shoppingapp.api.place_order",
+			callback: function (r) {
+				if (!r.exc) {
+					frappe.msgprint("Order placed successfully");
+					window.location.href = "/my-orders";
+				}
+			},
+		});
+	}
+</script>
+{% endblock %}

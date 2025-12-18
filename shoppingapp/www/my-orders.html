@@ -1,0 +1,50 @@
+{% extends "templates/web.html" %} {% block page_content %}
+<div class="container my-5">
+	<h2 class="mb-4">📦 My Orders</h2>
+
+	{% if orders %} {% for order in orders %}
+	<div class="card mb-4 shadow-sm">
+		<div class="card-header d-flex justify-content-between align-items-center">
+			<div>
+				<strong>Order:</strong> {{ order.name }}<br />
+				<small class="text-muted">Date: {{ order.order_date }}</small>
+			</div>
+			<span
+				class="badge {% if order.order_status == 'Pending' %}bg-warning {% elif order.order_status == 'Confirmed' %}bg-info {% elif order.order_status == 'Packed' %}bg-primary {% elif order.order_status == 'Shipped' %}bg-secondary {% elif order.order_status == 'Delivered' %}bg-success {% elif order.order_status == 'Cancelled' %}bg-danger {% endif %}"
+			>
+				{{ order.order_status }}
+			</span>
+		</div>
+
+		<div class="card-body">
+			<table class="table table-sm">
+				<thead>
+					<tr>
+						<th>Product</th>
+						<th style="width: 100px">Qty</th>
+						<th style="width: 120px">Rate</th>
+						<th style="width: 120px">Amount</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for item in order.items %}
+					<tr>
+						<td>{{ item.product_name }}</td>
+						<td>{{ item.quantity }}</td>
+						<td>₹ {{ item.rate }}</td>
+						<td>₹ {{ item.amount }}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+
+			<div class="text-end">
+				<strong>Total: ₹ {{ order.total_amount }}</strong>
+			</div>
+		</div>
+	</div>
+	{% endfor %} {% else %}
+	<div class="alert alert-info">No orders found.</div>
+	{% endif %}
+</div>
+{% endblock %}

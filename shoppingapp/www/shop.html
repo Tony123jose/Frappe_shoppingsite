@@ -1,0 +1,56 @@
+{% extends "templates/web.html" %} {% block page_content %}
+<div class="container my-5">
+	<h2 class="mb-4">🛒 Shop</h2>
+
+	<div class="row">
+		{% if products %} {% for p in products %}
+		<div class="col-md-3 mb-4">
+			<div class="card h-100 shadow-sm">
+				{% if p.product_image %}
+				<img
+					src="{{ p.product_image }}"
+					class="card-img-top"
+					style="height: 200px; object-fit: cover"
+				/>
+				{% else %}
+				<div
+					class="bg-light d-flex align-items-center justify-content-center"
+					style="height: 200px"
+				>
+					<span>No Image</span>
+				</div>
+				{% endif %}
+
+				<div class="card-body d-flex flex-column">
+					<h6 class="card-title">{{ p.product_name }}</h6>
+					<p class="text-muted mb-2">₹ {{ p.price }}</p>
+
+					<button class="btn btn-primary mt-auto" onclick="add_to_cart('{{ p.name }}')">
+						Add to Cart
+					</button>
+				</div>
+			</div>
+		</div>
+		{% endfor %} {% else %}
+		<p>No products available</p>
+		{% endif %}
+	</div>
+</div>
+
+<script>
+	function add_to_cart(product) {
+		frappe.call({
+			method: "shoppingapp.api.add_to_cart",
+			args: {
+				product: product,
+				quantity: 1,
+			},
+			callback: function (r) {
+				if (!r.exc) {
+					frappe.msgprint("Product " + product + " added to cart");
+				}
+			},
+		});
+	}
+</script>
+{% endblock %}
