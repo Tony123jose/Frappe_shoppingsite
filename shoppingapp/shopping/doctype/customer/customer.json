@@ -1,4 +1,6 @@
 {
+ "_comments": "[{\"comment\": \"<div class=\\\"ql-editor read-mode\\\"><p>MASTER TABLES</p></div>\", \"by\": \"tony123jose@gmail.com\", \"name\": \"8i4lors6et\"}]",
+ "_liked_by": "[]",
  "actions": [],
  "allow_rename": 1,
  "creation": "2025-12-15 13:07:23.856490",
@@ -14,7 +16,7 @@
    "fieldname": "customer_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "customer_name"
+   "label": "customer name"
   },
   {
    "fieldname": "email",
@@ -32,7 +34,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-17 18:29:33.240001",
+ "modified": "2025-12-19 09:36:50.746847",
  "modified_by": "tony123jose@gmail.com",
  "module": "shopping",
  "name": "Customer",

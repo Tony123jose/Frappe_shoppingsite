@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"tony123jose@gmail.com\",\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "creation": "2025-12-15 13:12:14.897527",
@@ -7,7 +8,10 @@
  "field_order": [
   "customer",
   "total_amount",
-  "cart_items"
+  "cart_items",
+  "order_placed",
+  "order_status",
+  "order"
  ],
  "fields": [
   {
@@ -22,22 +26,46 @@
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "total_amount",
+   "label": "Total amount",
    "precision": "3",
    "read_only": 1
   },
   {
    "fieldname": "cart_items",
    "fieldtype": "Table",
-   "label": "cart_items",
+   "label": "Cart Items",
    "options": "Cart Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "order_placed",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "order placed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "order_status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "order status",
+   "options": "Pending\nConfirmed\nPacked\nShipped\nDelivered\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "order",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "order",
+   "options": "Order"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-17 18:42:44.767624",
- "modified_by": "tony123jose@gmail.com",
+ "modified": "2025-12-30 13:58:25.938007",
+ "modified_by": "Administrator",
  "module": "shopping",
  "name": "Shopping Cart",
  "owner": "Administrator",

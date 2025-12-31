@@ -1,53 +1,49 @@
 {% extends "templates/web.html" %} {% block page_content %}
-<div class="container my-5">
-	<h2 class="mb-4">🛒 My Cart</h2>
 
-	{% if cart and cart.cart_items %}
-	<table class="table table-bordered">
-		<thead class="table-light">
-			<tr>
-				<th>Product</th>
-				<th style="width: 120px">Qty</th>
-				<th style="width: 120px">Rate</th>
-				<th style="width: 120px">Amount</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for item in cart.cart_items %}
-			<tr>
-				<td>{{ item.product_name }}</td>
-				<td>{{ item.quantity }}</td>
-				<td>₹ {{ item.rate }}</td>
-				<td>₹ {{ item.amount }}</td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+<h2>🛒 My Cart</h2>
 
-	<div class="d-flex justify-content-end">
-		<h4>Total: ₹ {{ cart.total_amount }}</h4>
-	</div>
+{% if cart_items %}
+<table class="table table-bordered">
+	<thead>
+		<tr>
+			<th>Product</th>
+			<th>Qty</th>
+			<th>Rate</th>
+			<th>Amount</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for item in cart_items %}
+		<tr>
+			<td>{{ item.product }}</td>
+			<td>{{ item.quantity }}</td>
+			<td>{{ item.rate }}</td>
+			<td>{{ item.amount }}</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
 
-	<div class="text-end mt-3">
-		<button class="btn btn-success" onclick="place_order()">Place Order</button>
-	</div>
+<h4>Total: ₹ {{ total_amount }}</h4>
 
-	{% else %}
-	<div class="alert alert-info">Your cart is empty.</div>
-	{% endif %}
-</div>
+<button class="btn btn-primary" onclick="placeOrder()">Place Order</button>
+
+{% else %}
+<div class="alert alert-info">Your cart is empty.</div>
+{% endif %}
 
 <script>
-	function place_order() {
+	function placeOrder() {
 		frappe.call({
-			method: "shoppingapp.api.place_order",
+			method: "shoppingapp.shoppingapp.api.place_order",
 			callback: function (r) {
-				if (!r.exc) {
+				if (r.message.success) {
 					frappe.msgprint("Order placed successfully");
-					window.location.href = "/my-orders";
+					window.location.reload();
 				}
 			},
 		});
 	}
 </script>
+
 {% endblock %}

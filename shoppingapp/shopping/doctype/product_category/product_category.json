@@ -1,4 +1,6 @@
 {
+ "_comments": "[{\"comment\": \"<div class=\\\"ql-editor read-mode\\\"><p>Master Table</p></div>\", \"by\": \"tony123jose@gmail.com\", \"name\": \"9hdk9aukud\"}]",
+ "_liked_by": "[]",
  "actions": [],
  "allow_rename": 1,
  "creation": "2025-12-15 12:56:31.744575",
@@ -12,15 +14,15 @@
    "fieldname": "category_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "category_name",
+   "label": "Category name",
    "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-16 11:03:20.883197",
- "modified_by": "Administrator",
+ "modified": "2025-12-19 09:42:21.865025",
+ "modified_by": "tony123jose@gmail.com",
  "module": "shopping",
  "name": "Product Category",
  "owner": "Administrator",

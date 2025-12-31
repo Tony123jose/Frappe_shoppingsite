@@ -1,128 +1,196 @@
 
-
 import frappe
-from frappe.utils import nowdate
 
+from shoppingapp.customer_utils import get_or_create_customer
+from shoppingapp.cart_utils import (
+    get_or_create_cart,
+    add_product_to_cart,
+    update_cart_item_quantity,
+    remove_cart_item
+)
+from shoppingapp.product_utils import get_all_products
+from shoppingapp.order_utils import (create_order_from_cart,
+    cancel_order_internal)
 
-import frappe
-from frappe import _
-
-@frappe.whitelist()
+# Get Product List API
+@frappe.whitelist(allow_guest=True)
 def get_products():
-    """Get list of all products with stock"""
-    products = frappe.get_all(
-        'Product',
-        fields=['name', 'product_name', 'description', 'price', 'stock_qty', 'product_image', 'category'],
-        filters={'stock_qty': ['>', 0]},
-        order_by='product_name'
-    )
-    return products
 
+    try:
+        products = get_all_products()
+
+        return {
+            "success": True,
+            "data": products,
+            "message": "Products fetched successfully"
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "data": [],
+            "message": f"Error: {str(e)}"
+        }
+
+# Add to Cart API
 @frappe.whitelist()
 def add_to_cart(product, quantity=1):
-    """Add product to cart"""
-    if frappe.session.user == 'Guest':
-        frappe.throw(_('Please login to add items to cart'))
-    
-    customer = frappe.db.get_value('Customer', {'email': frappe.session.user})
-    
-    if not customer:
-        frappe.throw(_('Customer record not found'))
-    
-    # Get or create cart
-    cart_name = frappe.db.get_value('Shopping Cart', {'customer': customer})
-    
-    if cart_name:
-        cart = frappe.get_doc('Shopping Cart', cart_name)
-    else:
-        cart = frappe.get_doc({
-            'doctype': 'Shopping Cart',
-            'customer': customer
-        })
-        cart.insert()
-    
-    # Check if product already in cart
-    existing_item = None
-    for item in cart.cart_items:
-        if item.product == product:
-            existing_item = item
-            break
-    
-    if existing_item:
-        existing_item.quantity += int(quantity)
-    else:
-        product_doc = frappe.get_doc('Product', product)
-        cart.append('cart_items', {
-            'product': product,
-            'quantity': int(quantity),
-            'rate': product_doc.price,
-            'amount': product_doc.price * int(quantity)
-        })
-    
-    cart.save()
-    
-    return {'success': True, 'cart': cart.name}
+   
+    print("🛒 ADD TO CART FUNCTION CALLED")
+    print(f"User: {frappe.session.user}")
+   
+    try:
+        # Get current user
+        user = frappe.session.user
+
+
+        if user == "Guest":
+            frappe.throw("Please login to add items to cart")
+
+        # Find or create customer for this user
+        customer = get_or_create_customer(user)
+
+        # Find or create cart for this customer
+        cart = get_or_create_cart(customer)
+
+        # Add product to cart
+        cart = add_product_to_cart(cart, product, quantity)
+
+        # Get product name for response
+        product_doc = frappe.get_doc("Product", product)
+        # print("🛑 BREAKPOINT: Checking product quantity")
+        # breakpoint() 
+        return {
+            "success": True,
+            "message": f"{product_doc.product_name} added to cart successfully",
+            "cart_total": cart.total_amount
+        }
+
+    except Exception as e:
+        frappe.log_error(f"Error adding to cart: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}"
+        }
 
 @frappe.whitelist()
-def place_order():
-    """Place order from cart"""
-    if frappe.session.user == 'Guest':
-        frappe.throw(_('Please login to place order'))
-    
-    customer = frappe.db.get_value('Customer', {'email': frappe.session.user})
-    
-    if not customer:
-        frappe.throw(_('Customer record not found'))
-    
-    cart_name = frappe.db.get_value('Shopping Cart', {'customer': customer})
-    
-    if not cart_name:
-        frappe.throw(_('Cart is empty'))
-    
-    cart = frappe.get_doc('Shopping Cart', cart_name)
-    
-    if not cart.cart_items:
-        frappe.throw(_('Cart is empty'))
-    
-    # Validate stock
-    for item in cart.cart_items:
-        product = frappe.get_doc('Product', item.product)
-        if product.stock_qty < item.quantity:
-            frappe.throw(
-                _('Insufficient stock for {0}. Available: {1}').format(
-                    item.product, product.stock_qty
-                )
-            )
-    
-    # Create order
-    order = frappe.get_doc({
-        'doctype': 'Order',
-        'customer': customer,
-        'order_date': frappe.utils.today(),
-        'total_amount': cart.total_amount,
-        'order_status': 'Pending',
-        'order_items': []
-    })
-    
-    for item in cart.cart_items:
-        order.append('order_items', {
-            'product': item.product,
-            'quantity': item.quantity,
-            'rate': item.rate,
-            'amount': item.amount
-        })
-    
-    order.insert()
-    
-    # Reduce stock
-    for item in cart.cart_items:
-        product = frappe.get_doc('Product', item.product)
-        product.stock_qty -= item.quantity
-        product.save()
-    
-    # Clear cart
-    cart.cart_items = []
-    cart.total_amount = 0
-    cart.save()
-    
-    return {'success': True, 'order': order.name}
+def place_order(cart_name=None):
+    """Place order and send confirmation email in background"""
+
+    try:
+        # Get current user
+        user = frappe.session.user
+
+        if user == "Guest":
+            frappe.throw("Please login to place order")
+
+        # Get cart
+        if cart_name:
+            cart = frappe.get_doc("Shopping Cart", cart_name)
+        else:
+            # Find customer and cart for current user
+            customer = get_or_create_customer(user)
+            cart = get_or_create_cart(customer)
+
+        # Check if cart has items
+        if not cart.cart_items or len(cart.cart_items) == 0:
+            return {
+                "success": False,
+                "message": "Cart is empty"
+            }
+
+        # Create order from cart
+        order = create_order_from_cart(cart)
+
+
+    except Exception as e:
+        frappe.log_error(
+            title="Place Order Failed",
+            message=frappe.get_traceback()
+        )
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}"
+        }
+
+# Update Cart Item Quantity API
+@frappe.whitelist()
+def update_cart_quantity(product, quantity):
+
+    try:
+        user = frappe.session.user
+
+        if user == "Guest":
+            frappe.throw("Please login")
+
+        # Get customer and cart
+        customer = get_or_create_customer(user)
+        cart = get_or_create_cart(customer)
+
+        # Update item quantity
+        cart = update_cart_item_quantity(cart, product, quantity)
+
+        return {
+            "success": True,
+            "message": "Cart updated successfully",
+            "cart_total": cart.total_amount
+        }
+
+    except Exception as e:
+        frappe.log_error(f"Error updating cart: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}"
+        }
+
+# Remove Item from Cart API
+@frappe.whitelist()
+def remove_from_cart(product):
+
+    try:
+        user = frappe.session.user
+
+        if user == "Guest":
+            frappe.throw("Please login")
+
+        # Get customer and cart
+        customer = get_or_create_customer(user)
+        cart = get_or_create_cart(customer)
+
+        # Remove item from cart
+        cart = remove_cart_item(cart, product)
+
+        return {
+            "success": True,
+            "message": "Item removed from cart",
+            "cart_total": cart.total_amount
+        }
+
+    except Exception as e:
+        frappe.log_error(f"Error removing from cart: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}"
+        }
+
+#cancel order
+@frappe.whitelist()
+def cancel_order(order_name):
+
+    try:
+        user = frappe.session.user
+        if user == "Guest":
+            frappe.throw("Please login")
+
+        customer = get_or_create_customer(user)
+        result = cancel_order_internal(order_name, customer)
+
+        return {
+            "success": True,
+            "message": result
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }

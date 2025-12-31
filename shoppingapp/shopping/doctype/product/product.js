@@ -6,3 +6,12 @@
 
 // 	},
 // });
+
+frappe.ui.form.on("Product", {
+    validate: function (frm) {
+        if (frm.doc.price === 0) {
+            frappe.throw("Price cannot be zero");
+        }
+    }
+});
+
