@@ -1,49 +1,253 @@
 {% extends "templates/web.html" %} {% block page_content %}
 
-<h2>🛒 My Cart</h2>
+<!-- Cart Banner -->
+<div class="cart-banner text-white mb-5">
+	<div class="container py-5 text-center">
+		<h1 class="fw-bold mb-1">🛒 Shopping Cart</h1>
+		<p class="lead mb-0">Review your items before placing the order</p>
+	</div>
+</div>
 
-{% if cart_items %}
-<table class="table table-bordered">
-	<thead>
-		<tr>
-			<th>Product</th>
-			<th>Qty</th>
-			<th>Rate</th>
-			<th>Amount</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for item in cart_items %}
-		<tr>
-			<td>{{ item.product }}</td>
-			<td>{{ item.quantity }}</td>
-			<td>{{ item.rate }}</td>
-			<td>{{ item.amount }}</td>
-		</tr>
-		{% endfor %}
-	</tbody>
-</table>
+<div class="container mb-5">
+	<!-- Back to Shop -->
+	<div class="d-flex justify-content-end mb-4">
+		<a href="/shop" class="btn btn-outline-dark"> ← Continue Shopping </a>
+	</div>
 
-<h4>Total: ₹ {{ total_amount }}</h4>
+	{% if cart_items %}
+	<div class="card shadow border-0 cart-card">
+		<div class="card-body p-0">
+			<div class="table-responsive">
+				<table class="table align-middle mb-0">
+					<thead class="table-light">
+						<tr>
+							<th>Product</th>
+							<th class="text-center">Price</th>
+							<th class="text-center">Quantity</th>
+							<th class="text-center">Amount</th>
+							<th class="text-center">Action</th>
+						</tr>
+					</thead>
 
-<button class="btn btn-primary" onclick="placeOrder()">Place Order</button>
+					<tbody>
+						{% for item in cart_items %}
+						<tr>
+							<td>
+								<div class="d-flex align-items-center">
+									{% if item.product_image %}
+									<img
+										src="{{ item.product_image }}"
+										alt="{{ item.product_name }}"
+										class="rounded me-3"
+										style="width: 60px; height: 60px; object-fit: cover"
+									/>
+									{% endif %}
+									<strong>{{ item.product_name }}</strong>
+								</div>
+							</td>
 
-{% else %}
-<div class="alert alert-info">Your cart is empty.</div>
-{% endif %}
+							<td class="text-center">₹{{ item.rate }}</td>
+
+							<td class="text-center">
+								<div class="btn-group btn-group-sm">
+									<button
+										class="btn btn-outline-secondary decrease-qty-btn"
+										data-product="{{ item.product }}"
+									>
+										−
+									</button>
+									<span class="btn btn-light disabled px-3">
+										{{ item.quantity }}
+									</span>
+									<button
+										class="btn btn-outline-secondary increase-qty-btn"
+										data-product="{{ item.product }}"
+									>
+										+
+									</button>
+								</div>
+							</td>
+
+							<td class="text-center fw-bold text-success">₹{{ item.amount }}</td>
+
+							<td class="text-center">
+								<button
+									class="btn btn-sm btn-outline-danger remove-item-btn"
+									data-product="{{ item.product }}"
+								>
+									Remove
+								</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+
+					<tfoot class="table-light">
+						<tr>
+							<td colspan="3" class="text-end fw-bold">Total Amount</td>
+							<td colspan="2" class="text-success fw-bold fs-4">
+								₹{{ total_amount }}
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+
+			<!-- Place Order -->
+			<div class="d-flex justify-content-end p-4 border-top bg-light">
+				<button class="btn btn-success btn-lg px-5" id="place-order-btn">
+					✅ Place Order
+				</button>
+			</div>
+		</div>
+	</div>
+
+	{% else %}
+	<!-- Empty Cart -->
+	<div class="alert alert-info text-center p-5">
+		<h3 class="mb-3">🛒 Your cart is empty</h3>
+		<p class="mb-4">Add some products to get started.</p>
+		<a href="/shop" class="btn btn-primary btn-lg"> Go to Shop </a>
+	</div>
+	{% endif %}
+</div>
+
+<!-- Styling -->
+<style>
+	.cart-banner {
+		background: linear-gradient(135deg, #5a7480ff, #a1d822ff);
+		border-radius: 0 0 32px 32px;
+	}
+
+	.cart-card {
+		border-radius: 18px;
+	}
+
+	.table th,
+	.table td {
+		vertical-align: middle;
+	}
+</style>
 
 <script>
-	function placeOrder() {
+	document.addEventListener("DOMContentLoaded", function () {
+		// Increase Quantity Buttons
+		document.querySelectorAll(".increase-qty-btn").forEach(function (button) {
+			button.addEventListener("click", function () {
+				let productId = this.getAttribute("data-product");
+				let currentQty = parseInt(
+					this.parentElement.querySelector("span strong").textContent
+				);
+				updateQuantity(productId, currentQty + 1);
+			});
+		});
+
+		// Decrease Quantity Buttons
+		document.querySelectorAll(".decrease-qty-btn").forEach(function (button) {
+			button.addEventListener("click", function () {
+				let productId = this.getAttribute("data-product");
+				let currentQty = parseInt(
+					this.parentElement.querySelector("span strong").textContent
+				);
+
+				if (currentQty <= 1) {
+					removeFromCart(productId);
+				} else {
+					updateQuantity(productId, currentQty - 1);
+				}
+			});
+		});
+
+		// Remove Item Buttons
+		document.querySelectorAll(".remove-item-btn").forEach(function (button) {
+			button.addEventListener("click", function () {
+				let productId = this.getAttribute("data-product");
+				removeFromCart(productId);
+			});
+		});
+
+		// Place Order Button
+		const placeOrderBtn = document.getElementById("place-order-btn");
+		if (placeOrderBtn) {
+			placeOrderBtn.addEventListener("click", function () {
+				placeOrder();
+			});
+		}
+	});
+
+	function updateQuantity(productId, newQty) {
+		console.log("🔄 Update Quantity");
+		console.log("Product:", productId);
+		console.log("New Qty:", newQty);
 		frappe.call({
-			method: "shoppingapp.shoppingapp.api.place_order",
+			method: "shoppingapp.api.update_cart_quantity",
+			args: {
+				product: productId,
+				quantity: newQty,
+			},
 			callback: function (r) {
-				if (r.message.success) {
-					frappe.msgprint("Order placed successfully");
-					window.location.reload();
+				if (r.message && r.message.success) {
+					frappe.show_alert({
+						message: "Quantity updated",
+						indicator: "green",
+					});
+					setTimeout(function () {
+						window.location.reload();
+					}, 500);
+				} else {
+					frappe.show_alert({
+						message: r.message.message || "Error updating cart",
+						indicator: "red",
+					});
 				}
 			},
 		});
 	}
-</script>
 
+	function removeFromCart(productId) {
+		frappe.confirm("Remove this item from cart?", function () {
+			frappe.call({
+				method: "shoppingapp.api.remove_from_cart",
+				args: {
+					product: productId,
+				},
+				callback: function (r) {
+					if (r.message && r.message.success) {
+						frappe.show_alert({
+							message: "Item removed from cart",
+							indicator: "orange",
+						});
+						setTimeout(function () {
+							window.location.reload();
+						}, 1000);
+					}
+				},
+			});
+		});
+	}
+
+	function placeOrder() {
+		frappe.confirm("Are you sure you want to place this order?", function () {
+			frappe.show_alert({
+				message: "Placing order...",
+				indicator: "blue",
+			});
+
+			frappe.call({
+				method: "shoppingapp.api.place_order",
+				callback: function (r) {
+					if (r.message && r.message.success) {
+						frappe.show_alert({
+							message: r.message.message,
+							indicator: "green",
+						});
+						setTimeout(function () {
+							window.location.href = "/my-order";
+						}, 2000);
+					}
+				},
+			});
+		});
+	}
+</script>
 {% endblock %}

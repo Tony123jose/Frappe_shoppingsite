@@ -20,7 +20,7 @@ function addToCart(button) {
     
     // Call backend to add to cart
     frappe.call({
-        method: 'shopping_app.api.add_to_cart',
+        method: 'shoppingapp.api.add_to_cart',
         args: {
             product: productId,
             quantity: 1

@@ -1,6 +1,6 @@
-
 import frappe
-
+from frappe import _
+from shoppingapp.order_utils import cancel_order_internal
 from shoppingapp.customer_utils import get_or_create_customer
 from shoppingapp.cart_utils import (
     get_or_create_cart,
@@ -36,38 +36,68 @@ def get_products():
 @frappe.whitelist()
 def add_to_cart(product, quantity=1):
    
+    print("\n" + "="*60)
     print("🛒 ADD TO CART FUNCTION CALLED")
     print(f"User: {frappe.session.user}")
+    print(f"Product: {product}")
+    print(f"Quantity: {quantity}")
+    print("="*60)
    
     try:
         # Get current user
         user = frappe.session.user
 
-
         if user == "Guest":
+            print("❌ User is Guest - throwing error")
             frappe.throw("Please login to add items to cart")
 
+        print(f"✅ Step 1: User authenticated - {user}")
+
         # Find or create customer for this user
+        print(f"🔍 Step 2: Getting/Creating customer...")
         customer = get_or_create_customer(user)
+        print(f"✅ Step 2: Customer found/created - {customer}")
 
         # Find or create cart for this customer
+        print(f"🔍 Step 3: Getting/Creating cart...")
         cart = get_or_create_cart(customer)
+        print(f"✅ Step 3: Cart found/created - {cart.name}")
+        print(f"   Current items in cart: {len(cart.cart_items)}")
 
         # Add product to cart
+        print(f"🔍 Step 4: Adding product to cart...")
+        print(f"   Calling add_product_to_cart(cart={cart.name}, product={product}, quantity={quantity})")
+        
         cart = add_product_to_cart(cart, product, quantity)
+        
+        print(f"✅ Step 4: Product added successfully")
+        print(f"   Items in cart now: {len(cart.cart_items)}")
+        print(f"   Total amount: {cart.total_amount}")
 
         # Get product name for response
+        print(f"🔍 Step 5: Getting product details...")
         product_doc = frappe.get_doc("Product", product)
-        # print("🛑 BREAKPOINT: Checking product quantity")
-        # breakpoint() 
-        return {
+        print(f"✅ Step 5: Product name - {product_doc.product_name}")
+
+        response = {
             "success": True,
             "message": f"{product_doc.product_name} added to cart successfully",
             "cart_total": cart.total_amount
         }
+        
+        print(f"✅ FINAL: Returning success response")
+        print(f"   Response: {response}")
+        print("="*60 + "\n")
+        
+        return response
 
     except Exception as e:
-        frappe.log_error(f"Error adding to cart: {str(e)}")
+        print(f"❌ ERROR OCCURRED!")
+        print(f"   Error: {str(e)}")
+        print(f"   Traceback: {frappe.get_traceback()}")
+        print("="*60 + "\n")
+        
+        frappe.log_error(f"Error adding to cart: {str(e)}", "Add to Cart Error")
         return {
             "success": False,
             "message": f"Error: {str(e)}"
@@ -101,7 +131,12 @@ def place_order(cart_name=None):
 
         # Create order from cart
         order = create_order_from_cart(cart)
-
+        
+        return {
+            "success": True,
+            "message": f"Order {order.name} placed successfully!",
+            "order_name": order.name
+        }
 
     except Exception as e:
         frappe.log_error(
@@ -174,22 +209,41 @@ def remove_from_cart(product):
         }
 
 #cancel order
+
 @frappe.whitelist()
 def cancel_order(order_name):
-
-    try:
-        user = frappe.session.user
-        if user == "Guest":
-            frappe.throw("Please login")
-
-        customer = get_or_create_customer(user)
-        result = cancel_order_internal(order_name, customer)
-
+    """
+    API endpoint to cancel an order
+    Called from frontend JavaScript
+    """
+    
+    # Check if user is logged in
+    if frappe.session.user == "Guest":
         return {
-            "success": True,
-            "message": result
+            "success": False,
+            "message": "Please login to cancel orders"
         }
+    
+    try:
+        # Get customer for current user
+        customer = get_or_create_customer(frappe.session.user)
+        
+        if not customer:
+            return {
+                "success": False,
+                "message": "Customer not found"
+            }
+        
+        # Call internal cancel function
+        result = cancel_order_internal(order_name, customer)
+        
+        return result
+    
     except Exception as e:
+        frappe.log_error(
+            message=frappe.get_traceback(),
+            title=f"Cancel Order API Error - {order_name}"
+        )
         return {
             "success": False,
             "message": str(e)
